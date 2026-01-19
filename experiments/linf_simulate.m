@@ -1,6 +1,6 @@
 rng(30,'twister')
 
-BOUND = 1;
+BOUND = 0;
 SIMULATE =1;
 
 s = [0, 0.1, 0.6, 0.2, 0.1];
@@ -35,15 +35,16 @@ delta_list = 0:0.0025:0.105;
 % delta = 0; %1.2347    2.4693
 
 
-ld = length(delta_list);
+
+%% find linf gain
+if BOUND
+    ld = length(delta_list);
 l1_gain =zeros(ld, 1);
 % l2_gain =zeros(ld, 1);
 linf_gain =zeros(ld, 1);
 l1_status =zeros(ld, 1);
 l2_status =zeros(ld, 1);
 linf_status =zeros(ld, 1);
-%% find linf gain
-if BOUND
 for i = 1:ld
 % dindex = 3;
 % for i =dindex:dindex
@@ -108,16 +109,27 @@ Yc = cell(Nsim, 1);
 Xd = zeros(n, Nsim);
 Yd = zeros(p, Nsim);
 
-dindex = 3;
+dindex = 21;
 
 u = @(zcurr) delta_list(dindex)/2*(zcurr + sin(1*zcurr)) + ustar;
 % u = @(zcurr) delta_list(dindex)*zcurr + ustar;
 
-wlevel = 0.1;
+wlevel = 0.05;
+% wlevel = 0;
 % wlevel = 0;
 % u = @(zcurr) -delta*zcurr + ustar;
 % w = @(t) wlevel*(2*rand(e, 1) - 1);
-w = @(t) wlevel*(randi(2, e, 1) - 1.5)*2;
+% w = @(t) wlevel*(randi(2, e, 1) - 1.5)*2;
+
+% u = @(zcurr) delta*sin(zcurr) + ustar;
+% phases = (2*pi/T)*(0:(T-1))';
+% phases = zeros(trange)
+
+% w0 = @(t) 0.15*cos(t*2*pi/100 + 0.0001*t.^2);
+w0 = @(t) 0*t;
+w = @(t) w0(t) + wlevel*(randi(2, e, 1) - 1.5)*2;
+
+gain_bound = linf_gain(dindex)*2*wlevel;
 for i = 1:Nsim
     x0 = x0c(:, i);
     X = zeros(n, T+1);
@@ -153,42 +165,77 @@ end
 
 %% plots
 
-disp(Xd)
+% disp(Xd)
 figure(3)
-clf
-subplot(2, 1, 1)
-plot(trange, Xc{1})
-xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
-ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
-title('$w_t = 0$', 'interpreter', 'latex', 'fontsize', 16)
-subplot(2, 1, 2)
-plot(trange, Xc{5})
-xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
-ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
-title('$|w_t| < 0.1$', 'interpreter', 'latex', 'fontsize', 16)
 
+clf
+hold on
+for i = 10:15
+% plot(trange, Xc{5})
+    xi = Xc{i}
+    plot(trange(1:300), xi(3, 1:300))
+end
+xfix = Xc{1};
+W0list = w0((1:300)');
+% plot(trange(1:300), gain_bound + W0list + xfix(3, end), 'k');
+% plot(trange(1:300), -gain_bound + W0list + xfix(3, end), 'k');
+xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
+ylabel('$x^3_t$', 'interpreter', 'latex', 'fontsize', 14)
+title('$|w_t^1 - w_t^2| < 0.1$', 'interpreter', 'latex', 'fontsize', 16)
+
+% clf
+% subplot(2, 1, 1)
+% plot(trange, Xc{1})
+% xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
+% ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
+% title('$w_t = 0$', 'interpreter', 'latex', 'fontsize', 16)
+% subplot(2, 1, 2)
+% plot(trange, Xc{5})
+% xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
+% ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
+% title('$|w_t| < 0.1$', 'interpreter', 'latex', 'fontsize', 16)
+
+
+
+% 
+% disp(Xd)
+% figure(3)
+% clf
+% subplot(2, 1, 1)
+% plot(trange, Xc{1})
+% xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
+% ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
+% title('$w_t = 0$', 'interpreter', 'latex', 'fontsize', 16)
+% subplot(2, 1, 2)
+% plot(trange, Xc{5})
+% xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
+% ylabel('$x_t$', 'interpreter', 'latex', 'fontsize', 14)
+% title('$|w_t| < 0.1$', 'interpreter', 'latex', 'fontsize', 16)
+% 
 ystar = Yd(end, 1);
 figure(4)
 clf
 hold on
-ybound = linf_gain(dindex)*wlevel;
+ybound = linf_gain(dindex)*wlevel*2;
 for i =1:Nsim
     plot(trange(1:end-1), Yc{i});    
 end
-
+xlim([0, 300]);
+ylim([0, 1.5])
 plot(xlim, [1, 1]*(ystar+ybound), 'k')
 plot(xlim, [1, 1]*(ystar-ybound), 'k')
 xlabel('$t$', 'interpreter', 'latex', 'fontsize', 14)
 ylabel('$y_t$', 'interpreter', 'latex', 'fontsize', 14)
 % title('$\ell_\infty$ bounds on output', 'interpreter', 'latex', 'fontsize', 16)
 end
-
-figure(3)
-clf
-hold on
-plot(delta_list(~l1_status), l1_gain(~l1_status), 'LineWidth', 3)
-plot(delta_list(~linf_status), linf_gain(~linf_status), '--', 'linewidth', 3)
-set(gca, 'YScale', 'log')
-xlabel('$\delta$', 'Interpreter','latex','FontSize',16)
-ylabel('Incremental Gain', 'Interpreter','latex', 'FontSize',16)
-legend({'$\ell_1$', '$\ell_\infty$'}, 'Interpreter','latex', 'FontSize',14, 'location', 'northwest')
+% 
+% figure(3)
+% clf
+% hold on
+% plot(delta_list(~l1_status), l1_gain(~l1_status), 'LineWidth', 3)
+% plot(delta_list(~linf_status), linf_gain(~linf_status), '--', 'linewidth', 3)
+% set(gca, 'YScale', 'log')
+% xlabel('$\tau$', 'Interpreter','latex','FontSize',16)
+% ylabel('Incremental Gain', 'Interpreter','latex', 'FontSize',16)
+% legend({'$\ell_1$', '$\ell_\infty$'}, 'Interpreter','latex', 'FontSize',14, 'location', 'northwest')
+% end
