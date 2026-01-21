@@ -229,13 +229,13 @@ ylabel('$y_t$', 'interpreter', 'latex', 'fontsize', 14)
 % title('$\ell_\infty$ bounds on output', 'interpreter', 'latex', 'fontsize', 16)
 end
 % 
-% figure(3)
-% clf
-% hold on
-% plot(delta_list(~l1_status), l1_gain(~l1_status), 'LineWidth', 3)
-% plot(delta_list(~linf_status), linf_gain(~linf_status), '--', 'linewidth', 3)
-% set(gca, 'YScale', 'log')
-% xlabel('$\tau$', 'Interpreter','latex','FontSize',16)
-% ylabel('Incremental Gain', 'Interpreter','latex', 'FontSize',16)
-% legend({'$\ell_1$', '$\ell_\infty$'}, 'Interpreter','latex', 'FontSize',14, 'location', 'northwest')
-% end
+figure(3)
+clf
+hold on
+plot(delta_list(~l1_status), l1_gain(~l1_status), 'LineWidth', 3)
+plot(delta_list(~linf_status), linf_gain(~linf_status), '--', 'linewidth', 3)
+set(gca, 'YScale', 'log')
+xlabel('$\tau$', 'Interpreter','latex','FontSize',16)
+ylabel('Incremental Gain', 'Interpreter','latex', 'FontSize',16)
+legend({'$\ell_1$', '$\ell_\infty$'}, 'Interpreter','latex', 'FontSize',14, 'location', 'northwest')
+end
