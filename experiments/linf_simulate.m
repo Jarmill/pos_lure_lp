@@ -1,7 +1,7 @@
 rng(30,'twister')
 
-BOUND = 0;
-SIMULATE =1;
+BOUND = 1;
+SIMULATE =0;
 
 s = [0, 0.1, 0.6, 0.2, 0.1];
 beta = [0.95; 0.9; 0.7; 0.5];
@@ -26,7 +26,13 @@ F2 = zeros(p, e);
 %[delta, l1 gain, linf gain]
 % delta_list = 0:0.025:0.25;
 % delta_list = 0:0.01:0.25;
-delta_list = 0:0.0025:0.105;
+
+%main list
+% delta_list = 0:0.0025:0.105;
+
+
+delta_list = 0:0.025:0.1;
+
 % delta = 0.1
 % delta = 0.075
 % delta = 0.0995;
@@ -40,6 +46,7 @@ delta_list = 0:0.0025:0.105;
 if BOUND
     ld = length(delta_list);
 l1_gain =zeros(ld, 1);
+l1_d_gain =zeros(ld, 1);
 % l2_gain =zeros(ld, 1);
 linf_gain =zeros(ld, 1);
 l1_status =zeros(ld, 1);
@@ -84,10 +91,37 @@ for i = 1:ld
     l1_gain(i) = gam1_rec;
     l1_status(i) = sol1.problem;
 
-    %% find l2 gain
+    %% find l1 gain through the alternative formulation
+    v1_d = sdpvar(n, 1);
+    gam1_d = sdpvar(1, 1);
+    dv1_d = AD'*v1_d - v1_d;
+    
+    cons_1_d = [v1_d >= ep];
+    
+    for j = 1:size(BF, 2)
+        dterm = dv1_d + BF(:, j);
+        wterm = sum(C2, 1)*v1_d - gam1_d + sum(F2(:, j));
+        cons_1_d = [cons_1_d;  dterm <= 0; wterm <= 0];
+    end
+
+
+    % cons_1_d = [v1_d >= ep; dv + sum(BF, 2) <= 0; C2*vinf - gaminf + sum(F2, 2) <= 0];
+ % cons = [v >= ep; dv <= -ep*v; sum(v) == 1];
+    % cons_stab = [v >= ep; dv <= -ep*v; sum(v) == 1];
+    opts = sdpsettings('solver', 'mosek', 'verbose', 0);
+    sol1_d = optimize(cons_1_d, gam1_d, opts);
+    % optimize(cons_inf, gaminf, opts);
+    % 
+    v1_d_rec = value(v1_d);
+    gam1_d_rec = value(gam1_d);
+    l1_d_gain(i) = gam1_d_rec;
+    l1_d_status(i) = sol1_d.problem;
+    
     
     % [l2_gain(i), l2_status(i)] = l2_pos_gain(AD, BF, C2, F2);
    
+
+    [l1_gain, l1_d_gain]
 end
 end
 
@@ -129,7 +163,7 @@ wlevel = 0.05;
 w0 = @(t) 0*t;
 w = @(t) w0(t) + wlevel*(randi(2, e, 1) - 1.5)*2;
 
-gain_bound = linf_gain(dindex)*2*wlevel;
+% gain_bound = linf_gain(dindex)*2*wlevel;
 for i = 1:Nsim
     x0 = x0c(:, i);
     X = zeros(n, T+1);
@@ -238,4 +272,4 @@ set(gca, 'YScale', 'log')
 xlabel('$\tau$', 'Interpreter','latex','FontSize',16)
 ylabel('Incremental Gain', 'Interpreter','latex', 'FontSize',16)
 legend({'$\ell_1$', '$\ell_\infty$'}, 'Interpreter','latex', 'FontSize',14, 'location', 'northwest')
-end
+% end
